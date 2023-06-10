@@ -8,10 +8,8 @@ import socket
 from mido import MidiFile, MidiTrack, Message, MetaMessage
 from PIL import Image, ImageDraw
 
-
-
 # Set the file name and path
-file_name = "solid_color_image.png"
+file_name = "emotion_gradient_image.png"
 file_path = os.path.join(os.getcwd(), file_name)
 
 
@@ -82,8 +80,6 @@ chord_progressions = {
 }
 
 # Helper function to convert note names to MIDI note numbers
-
-
 def note_name_to_number(note_name):
     note_names = ['C', 'C#', 'D', 'D#', 'E','F', 'F#', 'G', 'G#', 'A', 'B', 'H']
     note_number = note_names.index(note_name.upper())
@@ -129,8 +125,6 @@ def save_midi_file(output_path):
     print(f"MIDI file saved: {filename}")
 
 # Helper function to convert chord names to MIDI note numbers
-
-
 def chord_name_to_notes(chord_name):
     root_note = chord_name[:-3]
     chord_type = chord_name[-3:]
@@ -218,13 +212,8 @@ while True:
     result = DeepFace.analyze(frame, actions=("emotion", "age"), enforce_detection=False)
 
     # Get the dominant emotion
-    # emotion = max(result['emotion'], key=result['emotion'].get)
-    #emotion = "dominant_emotion:" + result[0]["dominant_emotion"] +" "+str(result[0]["emotion"][result[0]["dominant_emotion"]])
     emotion = result[0]["dominant_emotion"]
     emotion_message = f"/emotion {emotion}"
-    #sock.sendall(emotion_message.encode() + b'\n')
-    # sock.sendall(emotion_message.encode())
-    # emotion = "\n".join([emo + " : " + str(round(result[0]["emotion"][emo])) for emo in result[0]["emotion"]])
     emotions = [emotion]
 
     # Display the emotion on the frame
@@ -240,7 +229,7 @@ while True:
     draw_emotion_gradient(data)
 
     play_chords()
-    time.sleep(1)
+    time.sleep(2)
 
 # Release the video capture and close the window
 video_capture.release()
