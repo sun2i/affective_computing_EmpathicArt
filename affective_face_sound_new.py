@@ -16,9 +16,11 @@ file_path = os.path.join(os.getcwd(), file_name)
 def create_image(start_color, end_color):
     # Check if the file already exists
     if os.path.exists(file_path):
-        # Delete the existing file
-        os.remove(file_path)
-        print(f"Deleted existing file: {file_name}")
+        # Rename the existing file
+        new_file_name = "new_emotion_gradient_old.png"
+        new_file_path = os.path.join(os.getcwd(), new_file_name)
+        os.rename(file_path, new_file_path)
+        print(f"Renamed existing file: {file_name} to {new_file_name}")
 
     # Set the size of the image
     width = 500
