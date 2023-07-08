@@ -206,23 +206,67 @@ def draw_emotion_gradient(data):
 
     create_image(first_color, second_color)
 
+# Create a list to store the last five emotion data records
+emotion_data_records = []
+
+import random
 
 while True:
     # Capture frame-by-frame
     ret, frame = video_capture.read()
+
     # Perform facial emotion analysis
     result = DeepFace.analyze(frame, actions=("emotion", "age"), enforce_detection=False)
 
-    # Get the dominant emotion
-    emotion = result[0]["dominant_emotion"]
-    emotion_message = f"/emotion {emotion}"
-    emotions = [emotion]
+    # Add the current emotion data to the list of records
+    emotion_data_records.append(result[0]['emotion'])
+
+    # If there are more than 5 records, remove the oldest one
+    if len(emotion_data_records) > 5:
+        emotion_data_records.pop(0)
+
+    # Compute the average percentage of each emotion over the last five seconds
+    average_emotions = {}
+    for record in emotion_data_records:
+        for emotion, value in record.items():
+            if emotion not in average_emotions:
+                average_emotions[emotion] = value
+            else:
+                average_emotions[emotion] += value
+
+    for emotion in average_emotions.keys():
+        average_emotions[emotion] /= len(emotion_data_records)
+
+    print("Average emotion")
+    print(average_emotions)
+
+    # Replace the current emotion data with the averaged data
+    data = result[0]
+    data['emotion'] = average_emotions
+
+    # Sort the averaged emotions
+    sorted_emotions = sorted(average_emotions.items(), key=lambda x: x[1], reverse=True)
+    
+    # Check if neutral is the dominant emotion
+    if sorted_emotions[0][0] == 'neutral':
+        # 25% chance to keep neutral as dominant emotion
+        if random.random() < 0.25:
+            dominant_emotion = 'neutral'
+        else:
+            sorted_emotions = [e for e in sorted_emotions if e[0] != 'neutral']
+            dominant_emotion = sorted_emotions[0][0] if sorted_emotions else 'neutral'
+    else:
+        dominant_emotion = sorted_emotions[0][0]
+
+    emotion_message = f"/emotion {dominant_emotion}"
+    emotions = [dominant_emotion]
 
     # Display the emotion on the frame
-    cv2.putText(frame, emotion, (10, 50),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    cv2.putText(frame, dominant_emotion, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     print(result[0])
 
-    data = result[0]
+    print("New emotions")
+    print(data)
 
     # Display the resulting frame
     cv2.imshow('Real-Time Emotion Analysis', frame)
@@ -230,8 +274,11 @@ while True:
     # Draw emotions gradient
     draw_emotion_gradient(data)
 
+    # Use the averaged emotions for playing chords
     play_chords()
-    time.sleep(2)
+
+    time.sleep(1)
+
 
 # Release the video capture and close the window
 video_capture.release()
