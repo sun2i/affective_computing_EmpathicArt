@@ -4,23 +4,24 @@ import mido
 import time
 import os
 import socket
+import random
 
 from mido import MidiFile, MidiTrack, Message, MetaMessage
 from PIL import Image, ImageDraw
 
+
+
 # Set the file name and path
-file_name = "emotion_gradient_image.png"
+file_name = "solid_color_image.png"
 file_path = os.path.join(os.getcwd(), file_name)
 
 
 def create_image(start_color, end_color):
     # Check if the file already exists
     if os.path.exists(file_path):
-        # Rename the existing file
-        new_file_name = "new_emotion_gradient_old.png"
-        new_file_path = os.path.join(os.getcwd(), new_file_name)
-        os.rename(file_path, new_file_path)
-        print(f"Renamed existing file: {file_name} to {new_file_name}")
+        # Delete the existing file
+        os.remove(file_path)
+        print(f"Deleted existing file: {file_name}")
 
     # Set the size of the image
     width = 500
@@ -69,21 +70,34 @@ def map_colors(emotion, value):
 # Midi setup
 midi_messages = []
 
+
+
+
 # Define chord progressions for each emotion
 chord_progressions = {
-    'happy': ['Cmaj', 'Cmaj','Cmaj'],
-    'neutral': ['Fma7', 'Fma7','Fma7'],
-    'sad': ['Dmi7', 'Dmi7','Dmi7'],
-    'surprise': ['Ema7', 'Ema7','Ema7'],
-    'angry': ['Gma7', 'Gma7','Gma7'],
-    'disgust': ['Cmi7', 'Cmi7','Cmi7'],
-    'fear': ['Fmi7', 'Fmi7','Fmi7']
+    'happy': ['Cmaj'],
+    'neutral': ['Dmaj'],
+    'surprise': ['Emij'],
+
+    'sad': ['Fmaj'],
+    
+    'angry': ['Gmaj'],
+   
+
+    'disgust': ['Amaj'],
+
+
+    'fear': ['Hmaj'],
+
     
 }
 
 # Helper function to convert note names to MIDI note numbers
+
+
 def note_name_to_number(note_name):
-    note_names = ['C', 'C#', 'D', 'D#', 'E','F', 'F#', 'G', 'G#', 'A', 'B', 'H']
+    note_names = ['C', 'C#', 'D', 'D#', 'E',
+                  'F', 'F#', 'G', 'G#', 'A', 'B', 'H']
     note_number = note_names.index(note_name.upper())
     return note_number
 
@@ -96,12 +110,21 @@ def open_virtual_midi_port(port_name):
     except OSError:
         print(f"Failed to open virtual MIDI port: {port_name}")
         return None
+   
+ #   port2 = mido.open_output()
 
+
+def send_modulation(value):
+    channel = 0  # Channel number (0-15)
+    controller = 1  # Controller number for Modulation MSB
+    message = mido.Message('control_change', channel=channel, control=controller, value = value)
+    virtual_port.send(message)
 
 def send_chord(port, notes, velocity=64, channel=1):
     global midi_messages
     for note in notes:
-        note_on = mido.Message('note_on', note=note,velocity=velocity, channel=channel)
+        note_on = mido.Message('note_on', note=note,
+                               velocity=velocity, channel=channel)
         port.send(note_on)
         midi_messages.append(note_on)
     time.sleep(1)  # Play the chord for 1 second
@@ -127,6 +150,8 @@ def save_midi_file(output_path):
     print(f"MIDI file saved: {filename}")
 
 # Helper function to convert chord names to MIDI note numbers
+
+
 def chord_name_to_notes(chord_name):
     root_note = chord_name[:-3]
     chord_type = chord_name[-3:]
@@ -135,22 +160,8 @@ def chord_name_to_notes(chord_name):
 
     if chord_type == 'maj':
         note_number += 60
-        chord_notes = [note_number, note_number + 4, note_number + 7]
-    elif chord_type == 'min':
-        note_number += 60
-        chord_notes = [note_number, note_number + 3, note_number + 7]
-    elif chord_type == 'dim':
-        note_number += 60
-        chord_notes = [note_number, note_number + 3, note_number + 6]
-    elif chord_type == 'aug':
-        note_number += 60
-        chord_notes = [note_number, note_number + 4, note_number + 8]
-    elif chord_type == 'mi7':
-        note_number += 60
-        chord_notes = [note_number, note_number +3, note_number + 7, note_number + 10]
-    elif chord_type == 'ma7':
-        note_number += 60
-        chord_notes = [note_number, note_number + 4, note_number + 7, note_number + 11]
+        chord_notes = [note_number]
+    
     else:
         chord_notes = [note_number]
 
@@ -160,13 +171,16 @@ def chord_name_to_notes(chord_name):
 def play_chords():
     # Generate chords based on emotions
     for emotion in emotions:
+
+        
+
         progression = chord_progressions.get(emotion, [])
 
         for chord_name in progression:
             # Create MIDI messages for the chord
             chord_notes = chord_name_to_notes(chord_name)
             send_chord(virtual_port, chord_notes)
-
+    lastplayed = emotion
     # Save the MIDI file
     print("Chords played succesfully")
 
@@ -186,7 +200,8 @@ def draw_emotion_gradient(data):
     emotionsData = data['emotion']
 
     # Sort the emotions by their values in descending order
-    sorted_emotions = sorted(emotionsData.items(),key=lambda x: x[1], reverse=True)
+    sorted_emotions = sorted(emotionsData.items(),
+                             key=lambda x: x[1], reverse=True)
 
     # Get the top two emotions with the highest values
     top_emotions = sorted_emotions[:2]
@@ -205,11 +220,9 @@ def draw_emotion_gradient(data):
     second_color = map_colors(second_emotion_name, second_emotion_value)
 
     create_image(first_color, second_color)
-
 # Create a list to store the last five emotion data records
 emotion_data_records = []
 
-import random
 
 while True:
     # Capture frame-by-frame
@@ -250,7 +263,7 @@ while True:
     # Check if neutral is the dominant emotion
     if sorted_emotions[0][0] == 'neutral':
         # 25% chance to keep neutral as dominant emotion
-        if random.random() < 0.25:
+        if random.random() < 0.5:
             dominant_emotion = 'neutral'
         else:
             sorted_emotions = [e for e in sorted_emotions if e[0] != 'neutral']
@@ -277,7 +290,9 @@ while True:
     # Use the averaged emotions for playing chords
     play_chords()
 
-    time.sleep(1)
+    time.sleep(4)
+
+    # Break the loop if 'q' is pressed
 
 
 # Release the video capture and close the window
