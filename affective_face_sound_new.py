@@ -6,27 +6,35 @@ import os
 
 from mido import MidiFile, MidiTrack, Message, MetaMessage
 from pythonosc import udp_client, osc_message, osc_message_builder
+import random
+
+from mido import MidiFile, MidiTrack, Message, MetaMessage
 
 client = udp_client.SimpleUDPClient('192.168.2.107', 7000)
 
 # Midi setup
 midi_messages = []
 
+
+
+
 # Define chord progressions for each emotion
 chord_progressions = {
-    'happy': ['Cmaj', 'Cmaj','Cmaj'],
-    'neutral': ['Fma7', 'Fma7','Fma7'],
-    'sad': ['Dmi7', 'Dmi7','Dmi7'],
-    'surprise': ['Ema7', 'Ema7','Ema7'],
-    'angry': ['Gma7', 'Gma7','Gma7'],
-    'disgust': ['Cmi7', 'Cmi7','Cmi7'],
-    'fear': ['Fmi7', 'Fmi7','Fmi7']
-    
+    'happy': ['Cmaj'],
+    'neutral': ['Dmaj'],
+    'surprise': ['Emij'],
+    'sad': ['Fmaj'],
+    'angry': ['Gmaj'],
+    'disgust': ['Amaj'],
+    'fear': ['Hmaj'],
 }
 
 # Helper function to convert note names to MIDI note numbers
+
+
 def note_name_to_number(note_name):
-    note_names = ['C', 'C#', 'D', 'D#', 'E','F', 'F#', 'G', 'G#', 'A', 'B', 'H']
+    note_names = ['C', 'C#', 'D', 'D#', 'E',
+                  'F', 'F#', 'G', 'G#', 'A', 'B', 'H']
     note_number = note_names.index(note_name.upper())
     return note_number
 
@@ -39,12 +47,20 @@ def open_virtual_midi_port(port_name):
     except OSError:
         print(f"Failed to open virtual MIDI port: {port_name}")
         return None
+#port2 = mido.open_output()
 
+
+def send_modulation(value):
+    channel = 0  # Channel number (0-15)
+    controller = 1  # Controller number for Modulation MSB
+    message = mido.Message('control_change', channel=channel, control=controller, value = value)
+    virtual_port.send(message)
 
 def send_chord(port, notes, velocity=64, channel=1):
     global midi_messages
     for note in notes:
-        note_on = mido.Message('note_on', note=note,velocity=velocity, channel=channel)
+        note_on = mido.Message('note_on', note=note,
+                               velocity=velocity, channel=channel)
         port.send(note_on)
         midi_messages.append(note_on)
     time.sleep(1)  # Play the chord for 1 second
@@ -70,6 +86,8 @@ def save_midi_file(output_path):
     print(f"MIDI file saved: {filename}")
 
 # Helper function to convert chord names to MIDI note numbers
+
+
 def chord_name_to_notes(chord_name):
     root_note = chord_name[:-3]
     chord_type = chord_name[-3:]
@@ -78,22 +96,8 @@ def chord_name_to_notes(chord_name):
 
     if chord_type == 'maj':
         note_number += 60
-        chord_notes = [note_number, note_number + 4, note_number + 7]
-    elif chord_type == 'min':
-        note_number += 60
-        chord_notes = [note_number, note_number + 3, note_number + 7]
-    elif chord_type == 'dim':
-        note_number += 60
-        chord_notes = [note_number, note_number + 3, note_number + 6]
-    elif chord_type == 'aug':
-        note_number += 60
-        chord_notes = [note_number, note_number + 4, note_number + 8]
-    elif chord_type == 'mi7':
-        note_number += 60
-        chord_notes = [note_number, note_number +3, note_number + 7, note_number + 10]
-    elif chord_type == 'ma7':
-        note_number += 60
-        chord_notes = [note_number, note_number + 4, note_number + 7, note_number + 11]
+        chord_notes = [note_number]
+    
     else:
         chord_notes = [note_number]
 
@@ -103,13 +107,16 @@ def chord_name_to_notes(chord_name):
 def play_chords():
     # Generate chords based on emotions
     for emotion in emotions:
+
+        
+
         progression = chord_progressions.get(emotion, [])
 
         for chord_name in progression:
             # Create MIDI messages for the chord
             chord_notes = chord_name_to_notes(chord_name)
             send_chord(virtual_port, chord_notes)
-
+    lastplayed = emotion
     # Save the MIDI file
     print("Chords played succesfully")
 
@@ -146,19 +153,59 @@ def send_all_osc_data(data):
 while True:
     # Capture frame-by-frame
     ret, frame = video_capture.read()
+
     # Perform facial emotion analysis
     result = DeepFace.analyze(frame, actions=("emotion", "age"), enforce_detection=False)
 
-    # Get the dominant emotion
-    emotion = result[0]["dominant_emotion"]
-    emotion_message = f"/emotion {emotion}"
-    emotions = [emotion]
+    # Add the current emotion data to the list of records
+    emotion_data_records.append(result[0]['emotion'])
+
+    # If there are more than 5 records, remove the oldest one
+    if len(emotion_data_records) > 5:
+        emotion_data_records.pop(0)
+
+    # Compute the average percentage of each emotion over the last five seconds
+    average_emotions = {}
+    for record in emotion_data_records:
+        for emotion, value in record.items():
+            if emotion not in average_emotions:
+                average_emotions[emotion] = value
+            else:
+                average_emotions[emotion] += value
+
+    for emotion in average_emotions.keys():
+        average_emotions[emotion] /= len(emotion_data_records)
+
+    print("Average emotion")
+    print(average_emotions)
+
+    # Replace the current emotion data with the averaged data
+    data = result[0]
+    data['emotion'] = average_emotions
+
+    # Sort the averaged emotions
+    sorted_emotions = sorted(average_emotions.items(), key=lambda x: x[1], reverse=True)
+    
+    # Check if neutral is the dominant emotion
+    if sorted_emotions[0][0] == 'neutral':
+        # 25% chance to keep neutral as dominant emotion
+        if random.random() < 0.5:
+            dominant_emotion = 'neutral'
+        else:
+            sorted_emotions = [e for e in sorted_emotions if e[0] != 'neutral']
+            dominant_emotion = sorted_emotions[0][0] if sorted_emotions else 'neutral'
+    else:
+        dominant_emotion = sorted_emotions[0][0]
+
+    emotion_message = f"/emotion {dominant_emotion}"
+    emotions = [dominant_emotion]
 
     # Display the emotion on the frame
-    cv2.putText(frame, emotion, (10, 50),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    cv2.putText(frame, dominant_emotion, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     print(result[0])
 
-    data = result[0]
+    print("New emotions")
+    print(data)
 
     # Display the resulting frame
     cv2.imshow('Real-Time Emotion Analysis', frame)
@@ -166,8 +213,13 @@ while True:
     # Send emotion osc
     send_all_osc_data(data)
 
+    # Use the averaged emotions for playing chords
     play_chords()
-    time.sleep(2)
+
+    time.sleep(4)
+
+    # Break the loop if 'q' is pressed
+
 
 # Release the video capture and close the window
 video_capture.release()
