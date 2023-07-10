@@ -3,68 +3,11 @@ import cv2
 import mido
 import time
 import os
-import socket
 
 from mido import MidiFile, MidiTrack, Message, MetaMessage
-from PIL import Image, ImageDraw
+from pythonosc import udp_client, osc_message, osc_message_builder
 
-# Set the file name and path
-file_name = "emotion_gradient_image.png"
-file_path = os.path.join(os.getcwd(), file_name)
-
-
-def create_image(start_color, end_color):
-    # Check if the file already exists
-    if os.path.exists(file_path):
-        # Rename the existing file
-        new_file_name = "new_emotion_gradient_old.png"
-        new_file_path = os.path.join(os.getcwd(), new_file_name)
-        os.rename(file_path, new_file_path)
-        print(f"Renamed existing file: {file_name} to {new_file_name}")
-
-    # Set the size of the image
-    width = 500
-    height = 500
-
-    # Create a new image with the specified size
-    image = Image.new("RGB", (width, height))
-
-    # Create a draw object
-    draw = ImageDraw.Draw(image)
-
-    # Generate the gradient
-    for y in range(height):
-        # Calculate the interpolated color for the current row
-        r = int(start_color[0] + (end_color[0] - start_color[0]) * y / height)
-        g = int(start_color[1] + (end_color[1] - start_color[1]) * y / height)
-        b = int(start_color[2] + (end_color[2] - start_color[2]) * y / height)
-        color = (r, g, b)
-
-        # Draw a horizontal line with the interpolated color
-        draw.line([(0, y), (width, y)], fill=color)
-
-    # Save the image to your computer
-    image.save(file_path)
-    print(f"Saved new file: {file_name}")
-
-
-def map_colors(emotion, value):
-    value = 1
-    if emotion == 'happy':
-        return (255*value, 200*value, 0)
-    elif emotion == 'neutral':
-        return (255*value, 255*value, 130*value)
-    elif emotion == 'sad':
-        return (0, 0, 255*value)
-    elif emotion == 'surprise':
-        return (90*value, 160*value, 255*value)
-    elif emotion == 'angry':
-        return (200*value, 0, 50*value)
-    elif emotion == 'disgust':
-        return (140*value, 0, 160*value)
-    elif emotion == 'fear':
-        return (0, 180*value, 90*value)
-
+client = udp_client.SimpleUDPClient('192.168.2.107', 7000)
 
 # Midi setup
 midi_messages = []
@@ -179,32 +122,25 @@ if not video_capture.isOpened():
 
 virtual_port = open_virtual_midi_port('My Virtual Port')
 
+def send_osc_message(address, value):
+    osc_msg = osc_message_builder.OscMessageBuilder(address=address)
+    osc_msg.add_arg(value)
+    try:
+        client.send(osc_msg.build())
+    except Exception as e:
+        print(f"Error sending OSC message: {e}")
 
-def draw_emotion_gradient(data):
-
+def send_all_osc_data(data):
     # Get the emotions and their values
     emotionsData = data['emotion']
 
     # Sort the emotions by their values in descending order
-    sorted_emotions = sorted(emotionsData.items(),key=lambda x: x[1], reverse=True)
+    sorted_emotions = sorted(emotionsData.items(), key=lambda x: x[1], reverse=True)
 
-    # Get the top two emotions with the highest values
-    top_emotions = sorted_emotions[:2]
-
-    # Access the first emotion and its value separately
-    first_emotion = top_emotions[0]
-    first_emotion_name = first_emotion[0]
-    first_emotion_value = first_emotion[1]
-
-    # Access the second emotion and its value separately
-    second_emotion = top_emotions[1]
-    second_emotion_name = second_emotion[0]
-    second_emotion_value = second_emotion[1]
-
-    first_color = map_colors(first_emotion_name, first_emotion_value)
-    second_color = map_colors(second_emotion_name, second_emotion_value)
-
-    create_image(first_color, second_color)
+    # Iterate over the emotions and their values
+    for emotion, value in sorted_emotions:
+        osc_address = f"/emotion/{emotion}"
+        send_osc_message(osc_address, value)
 
 
 while True:
@@ -227,8 +163,8 @@ while True:
     # Display the resulting frame
     cv2.imshow('Real-Time Emotion Analysis', frame)
 
-    # Draw emotions gradient
-    draw_emotion_gradient(data)
+    # Send emotion osc
+    send_all_osc_data(data)
 
     play_chords()
     time.sleep(2)
