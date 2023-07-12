@@ -189,7 +189,7 @@ while True:
     # Check if neutral is the dominant emotion
     if sorted_emotions[0][0] == 'neutral':
         # 25% chance to keep neutral as dominant emotion
-        if random.random() < 0.5:
+        if random.random() < 0.25:
             dominant_emotion = 'neutral'
         else:
             sorted_emotions = [e for e in sorted_emotions if e[0] != 'neutral']
@@ -216,7 +216,7 @@ while True:
     # Use the averaged emotions for playing chords
     play_chords()
 
-    time.sleep(4)
+    # time.sleep(4)
 
     # Break the loop if 'q' is pressed
 
