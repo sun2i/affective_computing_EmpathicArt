@@ -10,13 +10,12 @@ import random
 
 from mido import MidiFile, MidiTrack, Message, MetaMessage
 
-client = udp_client.SimpleUDPClient('192.168.2.107', 7000)
+client = udp_client.SimpleUDPClient('172.20.10.2', 7000)
 
 # Midi setup
 midi_messages = []
 
-
-
+emotion_data_records = []
 
 # Define chord progressions for each emotion
 chord_progressions = {
@@ -33,8 +32,7 @@ chord_progressions = {
 
 
 def note_name_to_number(note_name):
-    note_names = ['C', 'C#', 'D', 'D#', 'E',
-                  'F', 'F#', 'G', 'G#', 'A', 'B', 'H']
+    note_names = ['C', 'C#', 'D', 'D#', 'E','F', 'F#', 'G', 'G#', 'A', 'B', 'H']
     note_number = note_names.index(note_name.upper())
     return note_number
 
@@ -59,8 +57,7 @@ def send_modulation(value):
 def send_chord(port, notes, velocity=64, channel=1):
     global midi_messages
     for note in notes:
-        note_on = mido.Message('note_on', note=note,
-                               velocity=velocity, channel=channel)
+        note_on = mido.Message('note_on', note=note, velocity=velocity, channel=channel)
         port.send(note_on)
         midi_messages.append(note_on)
     time.sleep(1)  # Play the chord for 1 second
