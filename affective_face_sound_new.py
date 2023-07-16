@@ -156,6 +156,9 @@ while True:
 
     data = result[0]
 
+    print("Original emotion")
+    print(data)
+
     # Get the emotions and their values
     emotionsData = data['emotion']
 
@@ -169,12 +172,33 @@ while True:
     emotion_message = f"/emotion {emotion}"
     emotions = [emotion]
 
+    # Add the current emotion data to the list of records
+    emotion_data_records.append(emotionsData)
+    
+    # If there are more than 3 records, remove the oldest one
+    if len(emotion_data_records) > 3:
+        emotion_data_records.pop(0)
+
+    # Compute the average percentage of each emotion over the last five seconds
+    average_emotions = {}
+    for record in emotion_data_records:
+        for emotion, value in record.items():
+            if emotion not in average_emotions:
+                average_emotions[emotion] = value
+            else:
+                average_emotions[emotion] += value
+
+    for emotion in average_emotions.keys():
+        average_emotions[emotion] /= len(emotion_data_records)
+
+    print("Average emotion")
+    print(average_emotions)
+
+    data['emotion'] = average_emotions
+
     # Display the emotion on the frame
     cv2.putText(frame, emotion, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     print(result[0])
-
-    print("New emotions")
-    print(data)
 
     # Display the resulting frame
     cv2.imshow('Real-Time Emotion Analysis', frame)
