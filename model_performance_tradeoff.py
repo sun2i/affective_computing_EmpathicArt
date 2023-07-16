@@ -10,7 +10,8 @@ This script test the accuracy and runtime of different backend provided by deepf
   'retinaface'
 
 Results:
-opencv takes the shortest runtime, and has overall better performance
+mtcnn has overall shorter runtime, and good performance
+opencv takes the shortest runtime
 retinaface takes the longest runtime, the recall is not high enough
 
 'happy' emotion has the highest recall,
