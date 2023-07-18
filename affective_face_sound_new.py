@@ -10,13 +10,12 @@ import random
 
 from mido import MidiFile, MidiTrack, Message, MetaMessage
 
-client = udp_client.SimpleUDPClient('192.168.2.107', 7000)
+client = udp_client.SimpleUDPClient('172.20.10.2', 7000)
 
 # Midi setup
 midi_messages = []
 
-
-
+emotion_data_records = []
 
 # Define chord progressions for each emotion
 chord_progressions = {
@@ -33,8 +32,7 @@ chord_progressions = {
 
 
 def note_name_to_number(note_name):
-    note_names = ['C', 'C#', 'D', 'D#', 'E',
-                  'F', 'F#', 'G', 'G#', 'A', 'B', 'H']
+    note_names = ['C', 'C#', 'D', 'D#', 'E','F', 'F#', 'G', 'G#', 'A', 'B', 'H']
     note_number = note_names.index(note_name.upper())
     return note_number
 
@@ -59,8 +57,7 @@ def send_modulation(value):
 def send_chord(port, notes, velocity=64, channel=1):
     global midi_messages
     for note in notes:
-        note_on = mido.Message('note_on', note=note,
-                               velocity=velocity, channel=channel)
+        note_on = mido.Message('note_on', note=note, velocity=velocity, channel=channel)
         port.send(note_on)
         midi_messages.append(note_on)
     time.sleep(1)  # Play the chord for 1 second
@@ -157,11 +154,29 @@ while True:
     # Perform facial emotion analysis
     result = DeepFace.analyze(frame, actions=("emotion", "age"), enforce_detection=False)
 
-    # Add the current emotion data to the list of records
-    emotion_data_records.append(result[0]['emotion'])
+    data = result[0]
 
-    # If there are more than 5 records, remove the oldest one
-    if len(emotion_data_records) > 5:
+    print("Original emotion")
+    print(data)
+
+    # Get the emotions and their values
+    emotionsData = data['emotion']
+
+    # Delete neutral entry in 75% of the cases
+    random_number = random.randint(0, 3)
+    if random_number != 0:
+        del emotionsData['neutral']
+
+    # Get the dominant emotion
+    emotion = data["dominant_emotion"]
+    emotion_message = f"/emotion {emotion}"
+    emotions = [emotion]
+
+    # Add the current emotion data to the list of records
+    emotion_data_records.append(emotionsData)
+    
+    # If there are more than 3 records, remove the oldest one
+    if len(emotion_data_records) > 3:
         emotion_data_records.pop(0)
 
     # Compute the average percentage of each emotion over the last five seconds
@@ -179,33 +194,11 @@ while True:
     print("Average emotion")
     print(average_emotions)
 
-    # Replace the current emotion data with the averaged data
-    data = result[0]
     data['emotion'] = average_emotions
 
-    # Sort the averaged emotions
-    sorted_emotions = sorted(average_emotions.items(), key=lambda x: x[1], reverse=True)
-    
-    # Check if neutral is the dominant emotion
-    if sorted_emotions[0][0] == 'neutral':
-        # 25% chance to keep neutral as dominant emotion
-        if random.random() < 0.25:
-            dominant_emotion = 'neutral'
-        else:
-            sorted_emotions = [e for e in sorted_emotions if e[0] != 'neutral']
-            dominant_emotion = sorted_emotions[0][0] if sorted_emotions else 'neutral'
-    else:
-        dominant_emotion = sorted_emotions[0][0]
-
-    emotion_message = f"/emotion {dominant_emotion}"
-    emotions = [dominant_emotion]
-
     # Display the emotion on the frame
-    cv2.putText(frame, dominant_emotion, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    cv2.putText(frame, emotion, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     print(result[0])
-
-    print("New emotions")
-    print(data)
 
     # Display the resulting frame
     cv2.imshow('Real-Time Emotion Analysis', frame)
