@@ -1,9 +1,10 @@
 import asyncio
 import json
 import websockets
+import time
 
 # Global variables to store the current heartbeat value and time of the polar-device
-current_hr_bpm = None
+current_hr_bpm = 70
 current_time = None
 
 #Background task for receiving heartbeat from websockets server
@@ -11,12 +12,15 @@ async def connect_and_fetch_data():
     global current_hr_bpm
     global current_time
 
-    async with websockets.connect('ws://127.0.0.1:8919/ws/hr_json') as ws:
+    #async with websockets.connect('ws://127.0.0.1:8919/ws/hr_json') as ws:
+    async with websockets.connect('ws://[2a02:3033:609:26b0:5bc7:81e6:bf44:5cc6]:8919/ws/hr_json') as ws:
         prev_second = None
         while True:
             try:
                 message = await ws.recv()
                 data = json.loads(message)
+                #print("message",message)
+                #print("data",data)
 
                 #heartbeat is updated once every second not with every tick
                 current_second = int(data['time'].split(':')[2])
@@ -32,6 +36,7 @@ async def connect_and_fetch_data():
                 break
             except Exception as e:
                 print(f"Error: {str(e)}")
+            #time.sleep(1)
 
 
 # Main program

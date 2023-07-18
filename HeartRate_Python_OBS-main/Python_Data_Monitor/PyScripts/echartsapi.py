@@ -51,10 +51,13 @@ class Server(uvicorn.Server):
         pass
 
 config = uvicorn.Config("echartsapi:app", host="127.0.0.1", port=8919, log_level="info")
+#config = uvicorn.Config("echartsapi:app", host="192.168.67.102", port=8919, log_level="info")
 server = Server(config=config)
 
 if __name__ == "__main__":
     processa = Process(target=udp_conn,args=("127.0.0.1",8909))
+    #processa = Process(target=udp_conn,args=("[2a02:3033:602:b48f:b60c:8311:8b30:43fd]",8909))
+    #processa = Process(target=udp_conn,args=("::",8909))
     processb = Process(target = Server.run,args=(server,))
     processa.start()
     processb.start()
