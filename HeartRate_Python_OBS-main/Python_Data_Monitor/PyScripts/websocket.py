@@ -9,7 +9,6 @@ from multiprocessing import Process, shared_memory
 import re
 from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 from constants import IP
-  
 
 app = FastAPI()
 app.add_middleware(
@@ -63,7 +62,6 @@ async def ws_hr_js(ws: WebSocket):
                 pass
             ddict = (await data_action())
             await asyncio.sleep(0.05)
-            #print("ddict",ddict)
             await ws.send_json(ddict)
     except (WebSocketDisconnect, ConnectionClosedOK, ConnectionClosedError,asyncio.CancelledError):
         await ws.close()
@@ -75,17 +73,11 @@ class Server(uvicorn.Server):
     def install_signal_handlers(self):
         pass
 
-config = uvicorn.Config("websocket:app", host="[2a02:3033:609:26b0:5bc7:81e6:bf44:5cc6]", port=8919, log_level="info",reload=True)
-#config = uvicorn.Config("websocket:app", host="0.0.0.0", port=8919, log_level="info", reload=True)
-# = uvicorn.Config("websocket:app", host="::", port=8919, log_level="info", reload=True)
-#config = uvicorn.Config("websocket:app", host="::", port=8919, log_level="info", reload=True)
+config = uvicorn.Config("websocket:app", host=IP, port=8919, log_level="info",reload=True)
 server = Server(config=config)
 
 if __name__ == "__main__":
     processa = Process(target=udp_conn,args=("127.0.0.1",8909))
-    #processa = Process(target=udp_conn, args=("0.0.0.0", 8909))
-    #processa = Process(target=udp_conn, args=(IP, 8909))
-    #processa = Process(target=udp_conn, args=("::", 8909))
     processb = Process(target = Server.run,args=(server,))
     processa.start()
     processb.start()

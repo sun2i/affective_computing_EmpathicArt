@@ -1,3 +1,5 @@
+#Olf file for testing with separate Asyncio loop and task
+
 import asyncio
 import json
 import websockets
@@ -13,7 +15,7 @@ async def connect_and_fetch_data():
     global current_time
 
     #async with websockets.connect('ws://127.0.0.1:8919/ws/hr_json') as ws:
-    async with websockets.connect('ws://[2a02:3033:609:26b0:5bc7:81e6:bf44:5cc6]:8919/ws/hr_json') as ws:
+    async with websockets.connect('ws://[2a02:3033:608:9785:3fff:cc38:f41e:d205]:8919/ws/hr_json') as ws:
         prev_second = None
         while True:
             try:

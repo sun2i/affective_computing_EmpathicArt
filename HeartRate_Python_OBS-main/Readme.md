@@ -9,15 +9,26 @@ python -m venv .\3104venv\
 .\3104venv\Scripts\activate
 python -m pip install -r .\PyScripts\requirements.txt
 ```
+
 3. Go to ...\HeartRate_Python_OBS-main and Run
 ```bash
 .\Start.bat
 ```
-5. Open http://127.0.0.1:8919 in your browser to see if the server is running
+4. Change: "speedometer_ws.html" line 166, "constants.py", "Heartrate3.py" line 14 and "affective final code.py" line 22 to your own IPv6 address
+
+5. Open http://[your_IPv6]:8919/speedometer_ws.html in your browser to see if the server is running
 6. Run 
 ```bash
-Python Heartrate.py
+Python Heartrate3.py
 ```
+to see if websockets requests are working
+
+7. If the terminal shows the heart rate updating once a second, you can run the main file (affective final code.py) on the same device or another one. It may be necessary that both are within the same local network
+
+
+
+
+
 
 
 
